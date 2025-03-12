@@ -2,13 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
-
-	"github.com/julienschmidt/httprouter"
+	"workout-manager/internal/database"
 )
 
-func (s *Server) RegisterRoutes() http.Handler {
+func (s *Server) RegisterRoutes(db *database.Database) http.Handler {
 	r := httprouter.New()
 
 	// Wrap all routes with CORS middleware
@@ -16,7 +16,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.HandlerFunc(http.MethodGet, "/", s.HelloWorldHandler)
 
-	r.HandlerFunc(http.MethodGet, "/health", s.healthHandler)
+	r.HandlerFunc(http.MethodPost, "/register", s.Register(db))
+
+	r.HandlerFunc(http.MethodPost, "/login", s.Login(db))
 
 	return corsWrapper
 }
@@ -45,16 +47,6 @@ func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	resp["message"] = "Hello World"
 
 	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		log.Fatalf("error handling JSON marshal. Err: %v", err)
-	}
-
-	_, _ = w.Write(jsonResp)
-}
-
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
-	jsonResp, err := json.Marshal(s.db.Health())
-
 	if err != nil {
 		log.Fatalf("error handling JSON marshal. Err: %v", err)
 	}
