@@ -5,20 +5,21 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
-	"workout-manager/internal/database"
 )
 
-func (s *Server) RegisterRoutes(db *database.Database) http.Handler {
+func (s *Server) RegisterRoutes() http.Handler {
 	r := httprouter.New()
 
 	// Wrap all routes with CORS middleware
 	corsWrapper := s.corsMiddleware(r)
 
-	r.HandlerFunc(http.MethodGet, "/", s.HelloWorldHandler)
+	r.GET("/", s.HelloWorldHandler)
+	r.POST("/register", s.Register)
+	r.POST("/login", s.Login)
 
-	r.HandlerFunc(http.MethodPost, "/register", s.Register(db))
-
-	r.HandlerFunc(http.MethodPost, "/login", s.Login(db))
+	r.POST("/trainings/add", s.AddTraining)
+	r.GET("/trainings/get_all/:username", s.GetUserTrainings)
+	r.DELETE("/trainings/delete/:id", s.DeleteTraining)
 
 	return corsWrapper
 }
@@ -31,7 +32,6 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
 		w.Header().Set("Access-Control-Allow-Credentials", "false") // Set to "true" if credentials are needed
-
 		// Handle preflight OPTIONS requests
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -42,7 +42,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HelloWorldHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	resp := make(map[string]string)
 	resp["message"] = "Hello World"
 
